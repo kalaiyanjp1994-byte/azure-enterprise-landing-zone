@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.46.1.21595",
+      "templateHash": "3369941130693899741"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus"
+    }
+  },
+  "variables": {
+    "locationPolicyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/e56962a6-4747-49cd-b67b-bf8b01975c4c",
+    "tagPolicyDefinitionId": "/providers/Microsoft.Authorization/policyDefinitions/871b6d14-10aa-478d-b590-94f262ecfa99"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Authorization/policyAssignments",
+      "apiVersion": "2022-06-01",
+      "name": "policy-enforce-location",
+      "properties": {
+        "policyDefinitionId": "[variables('locationPolicyDefinitionId')]",
+        "parameters": {
+          "listOfAllowedLocations": {
+            "value": [
+              "[parameters('location')]"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/policyAssignments",
+      "apiVersion": "2022-06-01",
+      "name": "policy-require-costcenter-tag",
+      "properties": {
+        "policyDefinitionId": "[variables('tagPolicyDefinitionId')]",
+        "parameters": {
+          "tagName": {
+            "value": "CostCenter"
+          }
+        }
+      }
+    }
+  ]
+}

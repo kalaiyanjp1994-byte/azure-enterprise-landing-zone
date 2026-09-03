@@ -3,10 +3,12 @@ param vnetname string
 param vnetaddressprefix string 
 param subnets array //  chnages to array 
 param nsgId string = '' // Added this: Optional NSG ID
+param tags object
 
 resource vnet 'Microsoft.Network/virtualNetworks@2020-06-01' = {
   name: vnetname
   location: location
+  tags: tags
 
   properties:{addressSpace:{
       addressPrefixes: [

@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.46.1.21595",
+      "templateHash": "11137082942511739525"
+    }
+  },
+  "parameters": {
+    "nsgName": {
+      "type": "string"
+    },
+    "location": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "object"
+    },
+    "rules": {
+      "type": "array",
+      "defaultValue": []
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-09-01",
+      "name": "[parameters('nsgName')]",
+      "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "copy": [
+          {
+            "name": "securityRules",
+            "count": "[length(parameters('rules'))]",
+            "input": {
+              "name": "[parameters('rules')[copyIndex('securityRules')].name]",
+              "properties": {
+                "priority": "[parameters('rules')[copyIndex('securityRules')].priority]",
+                "access": "[parameters('rules')[copyIndex('securityRules')].access]",
+                "direction": "[parameters('rules')[copyIndex('securityRules')].direction]",
+                "protocol": "[parameters('rules')[copyIndex('securityRules')].protocol]",
+                "sourceAddressPrefix": "[parameters('rules')[copyIndex('securityRules')].source]",
+                "sourcePortRange": "*",
+                "destinationAddressPrefix": "[parameters('rules')[copyIndex('securityRules')].destination]",
+                "destinationPortRange": "[parameters('rules')[copyIndex('securityRules')].port]"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "nsgId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+    }
+  }
+}

@@ -1,38 +1,26 @@
 param nsgName string
 param location string
+param tags object
+param rules array = [] // This allows us to pass a list of rules from main.bicep
 
 resource nsg 'Microsoft.Network/networkSecurityGroups@2023-09-01' = {
   name: nsgName
   location: location
+  tags: tags
   properties: {
-    securityRules: [
-      {
-        name: 'AllowHTTPSInbound'
-        properties: {
-          priority: 100
-          access: 'Allow'
-          direction: 'Inbound'
-          protocol: 'Tcp'
-          sourcePortRange: '*'
-          destinationPortRange: '443'
-          sourceAddressPrefix: '*'
-          destinationAddressPrefix: '*'
-        }
+    securityRules: [for rule in rules: {
+      name: rule.name
+      properties: {
+        priority: rule.priority
+        access: rule.access
+        direction: rule.direction
+        protocol: rule.protocol
+        sourceAddressPrefix: rule.source
+        sourcePortRange: '*'
+        destinationAddressPrefix: rule.destination
+        destinationPortRange: rule.port
       }
-      {
-        name: 'DenyAllInbound'
-        properties: {
-          priority: 4096
-          access: 'Deny'
-          direction: 'Inbound'
-          protocol: '*'
-          sourcePortRange: '*'
-          destinationPortRange: '*'
-          sourceAddressPrefix: '*'
-          destinationAddressPrefix: '*'
-        }
-      }
-    ]
+    }]
   }
 }
 

@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.42.1.51946",
-      "templateHash": "14083001672815832979"
+      "version": "0.46.1.21595",
+      "templateHash": "16532460013364916269"
     }
   },
   "parameters": {
@@ -21,6 +21,10 @@
       "type": "string",
       "defaultValue": "10.0.0.0/16"
     },
+    "hubSubnetPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.1.0/24"
+    },
     "spokeVnetName": {
       "type": "string",
       "defaultValue": "Spoke-Vnet-prod"
@@ -28,6 +32,20 @@
     "spokeAddressPrefix": {
       "type": "string",
       "defaultValue": "10.1.0.0/16"
+    },
+    "spokeSubnetPrefix": {
+      "type": "string",
+      "defaultValue": "10.1.1.0/24"
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_D2s_v7"
+    }
+  },
+  "variables": {
+    "tags": {
+      "CostCenter": "DevOps-Journey-101",
+      "Environment": "Dev"
     }
   },
   "resources": [
@@ -46,6 +64,9 @@
           },
           "location": {
             "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
           }
         },
         "template": {
@@ -54,8 +75,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "9908664107665485963"
+              "version": "0.46.1.21595",
+              "templateHash": "11137082942511739525"
             }
           },
           "parameters": {
@@ -64,6 +85,13 @@
             },
             "location": {
               "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "rules": {
+              "type": "array",
+              "defaultValue": []
             }
           },
           "resources": [
@@ -72,32 +100,24 @@
               "apiVersion": "2023-09-01",
               "name": "[parameters('nsgName')]",
               "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
               "properties": {
-                "securityRules": [
+                "copy": [
                   {
-                    "name": "AllowHTTPSInbound",
-                    "properties": {
-                      "priority": 100,
-                      "access": "Allow",
-                      "direction": "Inbound",
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "443",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "*"
-                    }
-                  },
-                  {
-                    "name": "DenyAllInbound",
-                    "properties": {
-                      "priority": 4096,
-                      "access": "Deny",
-                      "direction": "Inbound",
-                      "protocol": "*",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "*",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "*"
+                    "name": "securityRules",
+                    "count": "[length(parameters('rules'))]",
+                    "input": {
+                      "name": "[parameters('rules')[copyIndex('securityRules')].name]",
+                      "properties": {
+                        "priority": "[parameters('rules')[copyIndex('securityRules')].priority]",
+                        "access": "[parameters('rules')[copyIndex('securityRules')].access]",
+                        "direction": "[parameters('rules')[copyIndex('securityRules')].direction]",
+                        "protocol": "[parameters('rules')[copyIndex('securityRules')].protocol]",
+                        "sourceAddressPrefix": "[parameters('rules')[copyIndex('securityRules')].source]",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "[parameters('rules')[copyIndex('securityRules')].destination]",
+                        "destinationPortRange": "[parameters('rules')[copyIndex('securityRules')].port]"
+                      }
                     }
                   }
                 ]
@@ -128,6 +148,43 @@
           },
           "location": {
             "value": "[parameters('location')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          },
+          "rules": {
+            "value": [
+              {
+                "name": "AllowBastionSSH",
+                "priority": 100,
+                "access": "Allow",
+                "direction": "Inbound",
+                "protocol": "Tcp",
+                "source": "10.0.2.0/26",
+                "destination": "*",
+                "port": "22"
+              },
+              {
+                "name": "AllowHTTPSInbound",
+                "priority": 200,
+                "access": "Allow",
+                "direction": "Inbound",
+                "protocol": "Tcp",
+                "source": "*",
+                "destination": "*",
+                "port": "443"
+              },
+              {
+                "name": "DenyAllInbound",
+                "priority": 4096,
+                "access": "Deny",
+                "direction": "Inbound",
+                "protocol": "*",
+                "source": "*",
+                "destination": "*",
+                "port": "*"
+              }
+            ]
           }
         },
         "template": {
@@ -136,8 +193,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "9908664107665485963"
+              "version": "0.46.1.21595",
+              "templateHash": "11137082942511739525"
             }
           },
           "parameters": {
@@ -146,6 +203,13 @@
             },
             "location": {
               "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            },
+            "rules": {
+              "type": "array",
+              "defaultValue": []
             }
           },
           "resources": [
@@ -154,32 +218,24 @@
               "apiVersion": "2023-09-01",
               "name": "[parameters('nsgName')]",
               "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
               "properties": {
-                "securityRules": [
+                "copy": [
                   {
-                    "name": "AllowHTTPSInbound",
-                    "properties": {
-                      "priority": 100,
-                      "access": "Allow",
-                      "direction": "Inbound",
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "443",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "*"
-                    }
-                  },
-                  {
-                    "name": "DenyAllInbound",
-                    "properties": {
-                      "priority": 4096,
-                      "access": "Deny",
-                      "direction": "Inbound",
-                      "protocol": "*",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "*",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "*"
+                    "name": "securityRules",
+                    "count": "[length(parameters('rules'))]",
+                    "input": {
+                      "name": "[parameters('rules')[copyIndex('securityRules')].name]",
+                      "properties": {
+                        "priority": "[parameters('rules')[copyIndex('securityRules')].priority]",
+                        "access": "[parameters('rules')[copyIndex('securityRules')].access]",
+                        "direction": "[parameters('rules')[copyIndex('securityRules')].direction]",
+                        "protocol": "[parameters('rules')[copyIndex('securityRules')].protocol]",
+                        "sourceAddressPrefix": "[parameters('rules')[copyIndex('securityRules')].source]",
+                        "sourcePortRange": "*",
+                        "destinationAddressPrefix": "[parameters('rules')[copyIndex('securityRules')].destination]",
+                        "destinationPortRange": "[parameters('rules')[copyIndex('securityRules')].port]"
+                      }
                     }
                   }
                 ]
@@ -221,13 +277,16 @@
             "value": [
               {
                 "name": "snet-hub-default",
-                "prefix": "10.0.1.0/24"
+                "prefix": "[parameters('hubSubnetPrefix')]"
               },
               {
                 "name": "AzureBastionSubnet",
                 "prefix": "10.0.2.0/26"
               }
             ]
+          },
+          "tags": {
+            "value": "[variables('tags')]"
           }
         },
         "template": {
@@ -236,8 +295,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "17405087790227688824"
+              "version": "0.46.1.21595",
+              "templateHash": "11134623490187467116"
             }
           },
           "parameters": {
@@ -256,6 +315,9 @@
             "nsgId": {
               "type": "string",
               "defaultValue": ""
+            },
+            "tags": {
+              "type": "object"
             }
           },
           "resources": [
@@ -264,6 +326,7 @@
               "apiVersion": "2020-06-01",
               "name": "[parameters('vnetname')]",
               "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
               "properties": {
                 "copy": [
                   {
@@ -324,9 +387,12 @@
             "value": [
               {
                 "name": "snet-spoke-default",
-                "prefix": "10.1.1.0/24"
+                "prefix": "[parameters('spokeSubnetPrefix')]"
               }
             ]
+          },
+          "tags": {
+            "value": "[variables('tags')]"
           }
         },
         "template": {
@@ -335,8 +401,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "17405087790227688824"
+              "version": "0.46.1.21595",
+              "templateHash": "11134623490187467116"
             }
           },
           "parameters": {
@@ -355,6 +421,9 @@
             "nsgId": {
               "type": "string",
               "defaultValue": ""
+            },
+            "tags": {
+              "type": "object"
             }
           },
           "resources": [
@@ -363,6 +432,7 @@
               "apiVersion": "2020-06-01",
               "name": "[parameters('vnetname')]",
               "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
               "properties": {
                 "copy": [
                   {
@@ -426,8 +496,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "8350308413087682114"
+              "version": "0.46.1.21595",
+              "templateHash": "1136183681512444544"
             }
           },
           "parameters": {
@@ -499,6 +569,9 @@
           },
           "hubVnetName": {
             "value": "[parameters('hubVnetName')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
           }
         },
         "template": {
@@ -507,8 +580,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.42.1.51946",
-              "templateHash": "4747264236611640052"
+              "version": "0.46.1.21595",
+              "templateHash": "1177734817594413468"
             }
           },
           "parameters": {
@@ -524,6 +597,9 @@
             "bastionSubnetName": {
               "type": "string",
               "defaultValue": "AzureBastionSubnet"
+            },
+            "tags": {
+              "type": "object"
             }
           },
           "resources": [
@@ -535,6 +611,7 @@
               "sku": {
                 "name": "Basic"
               },
+              "tags": "[parameters('tags')]",
               "properties": {
                 "ipConfigurations": [
                   {
@@ -559,6 +636,7 @@
               "apiVersion": "2023-09-01",
               "name": "[format('{0}-pip', parameters('bastionName'))]",
               "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
               "sku": {
                 "name": "Standard"
               },
@@ -572,6 +650,135 @@
       "dependsOn": [
         "[resourceId('Microsoft.Resources/deployments', 'hubVnetModule')]"
       ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "spokeVmDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "vmName": {
+            "value": "vm-app-prod-01"
+          },
+          "vmSize": {
+            "value": "[parameters('vmSize')]"
+          },
+          "subnetId": {
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('spokeVnetName'), 'snet-spoke-default')]"
+          },
+          "adminPassword": {
+            "value": "P@ssw0rd1234!"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "15577503889155285713"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "vmName": {
+              "type": "string"
+            },
+            "vmSize": {
+              "type": "string"
+            },
+            "subnetId": {
+              "type": "string"
+            },
+            "adminUsername": {
+              "type": "string",
+              "defaultValue": "azureuser"
+            },
+            "adminPassword": {
+              "type": "securestring"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/networkInterfaces",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-nic', parameters('vmName'))]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "ipConfigurations": [
+                  {
+                    "name": "ipconfig1",
+                    "properties": {
+                      "subnet": {
+                        "id": "[parameters('subnetId')]"
+                      },
+                      "privateIPAllocationMethod": "Dynamic"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "apiVersion": "2023-09-01",
+              "name": "[parameters('vmName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "hardwareProfile": {
+                  "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                  "computerName": "[parameters('vmName')]",
+                  "adminUsername": "[parameters('adminUsername')]",
+                  "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                  "imageReference": {
+                    "publisher": "Canonical",
+                    "offer": "0001-com-ubuntu-server-jammy",
+                    "sku": "22_04-lts-gen2",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "createOption": "FromImage",
+                    "managedDisk": {
+                      "storageAccountType": "Standard_LRS"
+                    }
+                  }
+                },
+                "networkProfile": {
+                  "networkInterfaces": [
+                    {
+                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('vmName')))]"
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('vmName')))]"
+              ]
+            }
+          ]
+        }
+      }
     }
   ]
 }
