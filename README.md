@@ -1,6 +1,8 @@
-# Hub-and-Spoke Azure Network
+# Azure Hub-and-Spoke Network with Bicep
 
-This project deploys a small Azure hub-and-spoke network using Bicep.
+This project provisions a secure, modular Azure hub-and-spoke network using
+Bicep and Azure CLI. It demonstrates network segmentation, private VM access,
+governance, tagging, and Infrastructure as Code deployment practices.
 
 ## What It Deploys
 
@@ -11,6 +13,24 @@ This project deploys a small Azure hub-and-spoke network using Bicep.
 - Bidirectional VNet peering
 - Azure Bastion in the hub VNet
 - Standard, static public IP for Bastion
+- Ubuntu Server VM in the spoke subnet
+- Resource tags for governance and cost tracking
+- Azure Policy assignments for location and required tags
+
+## Architecture
+
+```text
+Internet
+  |
+Azure Bastion (Hub VNet: 10.0.2.0/26)
+  |
+Hub VNet (10.0.0.0/16) ===== VNet Peering ===== Spoke VNet (10.1.0.0/16)
+                                    |
+                          Ubuntu VM (10.1.1.0/24)
+```
+
+SSH access to the VM is allowed only from the Azure Bastion subnet through the
+spoke NSG. The VM does not require a public IP address.
 
 ## Repository Structure
 
@@ -18,10 +38,12 @@ This project deploys a small Azure hub-and-spoke network using Bicep.
 .
 ├── main.bicep              # Deployment entry point and module orchestration
 ├── bastion.bicep           # Azure Bastion and public IP resources
+├── governance.bicep        # Subscription-scope policy assignments
 └── modules/
     ├── nsg.bicep           # Network security groups and security rules
     ├── peering.bicep       # Hub-to-spoke and spoke-to-hub peerings
-    └── vnet.bicep          # Reusable VNet and subnet module
+    ├── vnet.bicep           # Reusable VNet and subnet module
+    └── vm.bicep             # VM and network interface
 ```
 
 `main.json` is a generated ARM template artifact. Edit `main.bicep`, then rebuild it when an ARM JSON file is required.
@@ -62,6 +84,14 @@ az group create \
   --location eastus
 ```
 
+Deploy the subscription-level governance policies when required:
+
+```bash
+az deployment sub create \
+  --location eastus \
+  --template-file governance.bicep
+```
+
 ## Validate and Deploy
 
 Run these commands from the repository root:
@@ -75,7 +105,8 @@ Deploy to the resource group:
 ```bash
 az deployment group create \
   --resource-group rg-devops-journey \
-  --template-file main.bicep
+  --template-file main.bicep \
+  --parameters adminPassword='<strong-password>'
 ```
 
 To override the defaults:
@@ -84,8 +115,11 @@ To override the defaults:
 az deployment group create \
   --resource-group rg-devops-journey \
   --template-file main.bicep \
-  --parameters location=eastus hubVnetName=Hub-Vnet-dev spokeVnetName=Spoke-Vnet-dev
+  --parameters adminPassword='<strong-password>' location=eastus hubVnetName=Hub-Vnet-dev spokeVnetName=Spoke-Vnet-dev
 ```
+
+For better secret handling, use a secure parameter file or Azure Key Vault in
+automation. Never commit passwords, keys, or other credentials to the repo.
 
 The deployment output and operation status can be inspected with:
 
@@ -109,6 +143,15 @@ az bicep upgrade
 ```
 
 This is optional for deployment unless the installed version cannot compile the template.
+
+## Lessons Learned
+
+- Match the Bicep target scope to the Azure CLI deployment command.
+- Use valid built-in policy definition IDs for the target subscription.
+- Apply required tags to every governed resource, including public IPs.
+- Check regional VM SKU capacity before selecting a VM size.
+- Keep Bastion subnets named `AzureBastionSubnet` and free of incompatible NSGs.
+- Use module outputs and explicit dependencies to connect resources safely.
 
 ## Troubleshooting
 

@@ -16,6 +16,8 @@ param spokeVnetName string = 'Spoke-Vnet-prod'
 param spokeAddressPrefix string = '10.1.0.0/16'
 param spokeSubnetPrefix string = '10.1.1.0/24'
 param vmSize string = 'Standard_D2s_v7'
+@secure()
+param adminPassword string
 
 // 1. Deploy NSGs
 module hubNsg 'modules/nsg.bicep' = {
@@ -133,7 +135,7 @@ module spokeVm 'modules/vm.bicep' = {
     vmName: 'vm-app-prod-01'
     vmSize: vmSize
     subnetId: resourceId('Microsoft.Network/virtualNetworks/subnets', spokeVnetName, 'snet-spoke-default')
-    adminPassword: 'P@ssw0rd1234!'
+    adminPassword: adminPassword
     tags: tags
   }
 }

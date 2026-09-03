@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "16532460013364916269"
+      "templateHash": "15757992961248013615"
     }
   },
   "parameters": {
@@ -40,6 +40,9 @@
     "vmSize": {
       "type": "string",
       "defaultValue": "Standard_D2s_v7"
+    },
+    "adminPassword": {
+      "type": "securestring"
     }
   },
   "variables": {
@@ -674,7 +677,7 @@
             "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('spokeVnetName'), 'snet-spoke-default')]"
           },
           "adminPassword": {
-            "value": "P@ssw0rd1234!"
+            "value": "[parameters('adminPassword')]"
           },
           "tags": {
             "value": "[variables('tags')]"
