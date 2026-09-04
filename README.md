@@ -93,9 +93,10 @@ az deployment sub create \
   --template-file governance.bicep
 ```
 
-The web tier uses the configurable `B1` App Service plan because some
-subscriptions have an App Service Free (`F1`) quota of zero. The `B1` plan is
-paid and may incur charges:
+The web tier is disabled by default because this subscription has zero quota for
+both the Free (`F1`) and Basic (`B1`) App Service plans. After requesting quota,
+enable it with the configurable `B1` plan. The `B1` plan is paid and may incur
+charges:
 
 ```bash
 az deployment group create \

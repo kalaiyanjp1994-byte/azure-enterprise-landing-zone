@@ -17,7 +17,7 @@ param spokeVnetName string = 'Spoke-Vnet-prod'
 param spokeAddressPrefix string = '10.1.0.0/16'
 param spokeSubnetPrefix string = '10.1.1.0/24'
 param vmSize string = 'Standard_D2s_v7'
-param deployWebApp bool = true
+param deployWebApp bool = false
 param appServicePlanSku string = 'B1'
 @secure()
 param adminPassword string

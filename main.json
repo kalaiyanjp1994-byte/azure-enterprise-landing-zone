@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "17238259438457527516"
+      "templateHash": "9323325590575380869"
     }
   },
   "parameters": {
@@ -43,7 +43,7 @@
     },
     "deployWebApp": {
       "type": "bool",
-      "defaultValue": true
+      "defaultValue": false
     },
     "appServicePlanSku": {
       "type": "string",
