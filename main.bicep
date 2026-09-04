@@ -141,3 +141,17 @@ module spokeVm 'modules/vm.bicep' = {
   }
 }
 
+// 7. Deploy the Web Tier
+module webAppModule 'modules/webapp.bicep' = {
+  name: 'webAppDeploy'
+  params: {
+    location: location
+    appServicePlanName: 'asp-app-prod-01'
+    webAppName: 'webapp-devops-journey-${uniqueString(resourceGroup().id)}' // Must be globally unique
+    tags: tags
+  }
+}
+
+
+
+
