@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "9323325590575380869"
+      "templateHash": "13065245004313891080"
     }
   },
   "parameters": {
@@ -43,11 +43,11 @@
     },
     "deployWebApp": {
       "type": "bool",
-      "defaultValue": false
+      "defaultValue": true
     },
     "appServicePlanSku": {
       "type": "string",
-      "defaultValue": "B1"
+      "defaultValue": "F1"
     },
     "adminPassword": {
       "type": "securestring"
@@ -176,14 +176,14 @@
                 "port": "22"
               },
               {
-                "name": "AllowHTTPSInbound",
+                "name": "AllowHTTPInbound",
                 "priority": 200,
                 "access": "Allow",
                 "direction": "Inbound",
                 "protocol": "Tcp",
                 "source": "*",
                 "destination": "*",
-                "port": "443"
+                "port": "80"
               },
               {
                 "name": "DenyAllInbound",
@@ -788,96 +788,6 @@
               ]
             }
           ]
-        }
-      }
-    },
-    {
-      "condition": "[parameters('deployWebApp')]",
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2025-04-01",
-      "name": "webAppDeploy",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "appServicePlanName": {
-            "value": "asp-app-prod-01"
-          },
-          "appServicePlanSku": {
-            "value": "[parameters('appServicePlanSku')]"
-          },
-          "webAppName": {
-            "value": "[format('webapp-devops-journey-{0}', uniqueString(resourceGroup().id))]"
-          },
-          "tags": {
-            "value": "[variables('tags')]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.46.1.21595",
-              "templateHash": "6369011637753548006"
-            }
-          },
-          "parameters": {
-            "location": {
-              "type": "string"
-            },
-            "appServicePlanName": {
-              "type": "string"
-            },
-            "appServicePlanSku": {
-              "type": "string"
-            },
-            "webAppName": {
-              "type": "string"
-            },
-            "tags": {
-              "type": "object"
-            }
-          },
-          "resources": [
-            {
-              "type": "Microsoft.Web/serverfarms",
-              "apiVersion": "2022-03-01",
-              "name": "[parameters('appServicePlanName')]",
-              "location": "[parameters('location')]",
-              "sku": {
-                "name": "[parameters('appServicePlanSku')]"
-              },
-              "kind": "app",
-              "tags": "[parameters('tags')]"
-            },
-            {
-              "type": "Microsoft.Web/sites",
-              "apiVersion": "2022-03-01",
-              "name": "[parameters('webAppName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]",
-                "httpsOnly": true
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Web/serverfarms', parameters('appServicePlanName'))]"
-              ]
-            }
-          ],
-          "outputs": {
-            "webAppUrl": {
-              "type": "string",
-              "value": "[reference(resourceId('Microsoft.Web/sites', parameters('webAppName')), '2022-03-01').defaultHostName]"
-            }
-          }
         }
       }
     }

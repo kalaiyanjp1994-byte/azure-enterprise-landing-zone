@@ -38,7 +38,6 @@ module spokeNsg 'modules/nsg.bicep' = {
     nsgName: 'nsg-spoke-prod' 
     location: location 
     tags: tags
-    // ADDED: These rules allow you to actually connect to the VM
     rules: [
       {
         name: 'AllowBastionSSH'
@@ -46,19 +45,19 @@ module spokeNsg 'modules/nsg.bicep' = {
         access: 'Allow'
         direction: 'Inbound'
         protocol: 'Tcp'
-        source: '10.0.2.0/26' // The Bastion Subnet
+        source: '10.0.2.0/26' 
         destination: '*'
         port: '22'
       }
       {
-        name: 'AllowHTTPSInbound'
+        name: 'AllowHTTPInbound'
         priority: 200
         access: 'Allow'
         direction: 'Inbound'
         protocol: 'Tcp'
         source: '*'
         destination: '*'
-        port: '443'
+        port: '80' // This allows the world to see your web server
       }
       {
         name: 'DenyAllInbound'
@@ -73,6 +72,7 @@ module spokeNsg 'modules/nsg.bicep' = {
     ]
   }
 }
+
 
 // 2. Deploy Hub VNet
 module hubVnet 'modules/vnet.bicep' = {
@@ -143,17 +143,7 @@ module spokeVm 'modules/vm.bicep' = {
   }
 }
 
-// 7. Deploy the Web Tier
-module webAppModule 'modules/webapp.bicep' = if (deployWebApp) {
-  name: 'webAppDeploy'
-  params: {
-    location: location
-    appServicePlanName: 'asp-app-prod-01'
-    appServicePlanSku: appServicePlanSku
-    webAppName: 'webapp-devops-journey-${uniqueString(resourceGroup().id)}' // Must be globally unique
-    tags: tags
-  }
-}
+
 
 
 
