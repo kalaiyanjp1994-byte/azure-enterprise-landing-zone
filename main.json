@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "13065245004313891080"
+      "templateHash": "6297707635363430026"
     }
   },
   "parameters": {
@@ -40,14 +40,6 @@
     "vmSize": {
       "type": "string",
       "defaultValue": "Standard_D2s_v7"
-    },
-    "deployWebApp": {
-      "type": "bool",
-      "defaultValue": true
-    },
-    "appServicePlanSku": {
-      "type": "string",
-      "defaultValue": "F1"
     },
     "adminPassword": {
       "type": "securestring"
