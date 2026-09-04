@@ -23,4 +23,4 @@ jobs:
         with:
           resourceGroupName: rg-devops-journey
           template: ./main.bicep
-          parameters: adminPassword=${{ secrets.VM_ADMIN_PASSWORD }}
+          parameters: adminPassword=${{ secrets.VM_ADMIN_PASSWORD }} deployWebApp=true appServicePlanSku=B1

@@ -17,7 +17,8 @@ param spokeVnetName string = 'Spoke-Vnet-prod'
 param spokeAddressPrefix string = '10.1.0.0/16'
 param spokeSubnetPrefix string = '10.1.1.0/24'
 param vmSize string = 'Standard_D2s_v7'
-param deployWebApp bool = false
+param deployWebApp bool = true
+param appServicePlanSku string = 'B1'
 @secure()
 param adminPassword string
 
@@ -148,6 +149,7 @@ module webAppModule 'modules/webapp.bicep' = if (deployWebApp) {
   params: {
     location: location
     appServicePlanName: 'asp-app-prod-01'
+    appServicePlanSku: appServicePlanSku
     webAppName: 'webapp-devops-journey-${uniqueString(resourceGroup().id)}' // Must be globally unique
     tags: tags
   }

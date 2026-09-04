@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "15240703173414214248"
+      "templateHash": "17238259438457527516"
     }
   },
   "parameters": {
@@ -43,7 +43,11 @@
     },
     "deployWebApp": {
       "type": "bool",
-      "defaultValue": false
+      "defaultValue": true
+    },
+    "appServicePlanSku": {
+      "type": "string",
+      "defaultValue": "B1"
     },
     "adminPassword": {
       "type": "securestring"
@@ -804,6 +808,9 @@
           "appServicePlanName": {
             "value": "asp-app-prod-01"
           },
+          "appServicePlanSku": {
+            "value": "[parameters('appServicePlanSku')]"
+          },
           "webAppName": {
             "value": "[format('webapp-devops-journey-{0}', uniqueString(resourceGroup().id))]"
           },
@@ -818,7 +825,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "13598181418371550113"
+              "templateHash": "6369011637753548006"
             }
           },
           "parameters": {
@@ -826,6 +833,9 @@
               "type": "string"
             },
             "appServicePlanName": {
+              "type": "string"
+            },
+            "appServicePlanSku": {
               "type": "string"
             },
             "webAppName": {
@@ -842,7 +852,7 @@
               "name": "[parameters('appServicePlanName')]",
               "location": "[parameters('location')]",
               "sku": {
-                "name": "F1"
+                "name": "[parameters('appServicePlanSku')]"
               },
               "kind": "app",
               "tags": "[parameters('tags')]"
