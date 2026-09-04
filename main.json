@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "1399511863897985503"
+      "templateHash": "15240703173414214248"
     }
   },
   "parameters": {
@@ -40,6 +40,10 @@
     "vmSize": {
       "type": "string",
       "defaultValue": "Standard_D2s_v7"
+    },
+    "deployWebApp": {
+      "type": "bool",
+      "defaultValue": false
     },
     "adminPassword": {
       "type": "securestring"
@@ -784,6 +788,7 @@
       }
     },
     {
+      "condition": "[parameters('deployWebApp')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
       "name": "webAppDeploy",

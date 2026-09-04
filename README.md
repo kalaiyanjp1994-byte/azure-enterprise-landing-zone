@@ -14,6 +14,7 @@ governance, tagging, and Infrastructure as Code deployment practices.
 - Azure Bastion in the hub VNet
 - Standard, static public IP for Bastion
 - Ubuntu Server VM in the spoke subnet
+- Optional App Service web tier
 - Resource tags for governance and cost tracking
 - Azure Policy assignments for location and required tags
 
@@ -90,6 +91,17 @@ Deploy the subscription-level governance policies when required:
 az deployment sub create \
   --location eastus \
   --template-file governance.bicep
+```
+
+The web tier is disabled by default because some subscriptions have an App
+Service Free (`F1`) quota of zero. Enable it only after confirming quota or
+choosing an approved paid App Service plan:
+
+```bash
+az deployment group create \
+  --resource-group rg-devops-journey \
+  --template-file main.bicep \
+  --parameters adminPassword='<strong-password>' deployWebApp=true
 ```
 
 ## Validate and Deploy

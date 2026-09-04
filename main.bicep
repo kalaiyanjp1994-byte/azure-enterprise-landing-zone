@@ -17,6 +17,7 @@ param spokeVnetName string = 'Spoke-Vnet-prod'
 param spokeAddressPrefix string = '10.1.0.0/16'
 param spokeSubnetPrefix string = '10.1.1.0/24'
 param vmSize string = 'Standard_D2s_v7'
+param deployWebApp bool = false
 @secure()
 param adminPassword string
 
@@ -142,7 +143,7 @@ module spokeVm 'modules/vm.bicep' = {
 }
 
 // 7. Deploy the Web Tier
-module webAppModule 'modules/webapp.bicep' = {
+module webAppModule 'modules/webapp.bicep' = if (deployWebApp) {
   name: 'webAppDeploy'
   params: {
     location: location
