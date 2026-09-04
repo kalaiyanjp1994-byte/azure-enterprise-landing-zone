@@ -1,3 +1,4 @@
+// Testing GitHub Actions Pipeline
 param location string = resourceGroup().location
 
 // 1. DEFINE THE MANDATORY TAGS (This satisfies your Azure Policy)
