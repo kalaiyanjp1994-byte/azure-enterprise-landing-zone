@@ -3,33 +3,45 @@ param vmName string
 param vmSize string
 param subnetId string
 param adminUsername string = 'azureuser'
-@secure() // Fixes the security warning
-param adminPassword string 
-param tags object // Added for Policy compliance
+@secure()
+param adminPassword string
+param tags object
+param lbBackendPoolId string = ''
 
 resource nic 'Microsoft.Network/networkInterfaces@2023-09-01' = {
   name: '${vmName}-nic'
   location: location
-  tags: tags // Required by Policy
+  tags: tags
   properties: {
     ipConfigurations: [
       {
         name: 'ipconfig1'
         properties: {
-          subnet: { id: subnetId }
+          subnet: {
+            id: subnetId
+          }
           privateIPAllocationMethod: 'Dynamic'
+          loadBalancerBackendAddressPools: lbBackendPoolId != '' ? [
+            {
+              id: lbBackendPoolId
+            }
+          ] : []
         }
       }
     ]
   }
 }
 
+
+
 resource vm 'Microsoft.Compute/virtualMachines@2023-09-01' = {
   name: vmName
   location: location
-  tags: tags // Required by Policy
+  tags: tags
   properties: {
-    hardwareProfile: { vmSize: vmSize }
+    hardwareProfile: {
+      vmSize: vmSize
+    }
     osProfile: {
       computerName: vmName
       adminUsername: adminUsername
@@ -44,11 +56,17 @@ resource vm 'Microsoft.Compute/virtualMachines@2023-09-01' = {
       }
       osDisk: {
         createOption: 'FromImage'
-        managedDisk: { storageAccountType: 'Standard_LRS' }
+        managedDisk: {
+          storageAccountType: 'Standard_LRS'
+        }
       }
     }
     networkProfile: {
-      networkInterfaces: [ { id: nic.id } ]
+      networkInterfaces: [
+        {
+          id: nic.id
+        }
+      ]
     }
   }
 }

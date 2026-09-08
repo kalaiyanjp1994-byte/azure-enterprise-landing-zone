@@ -138,8 +138,20 @@ module spokeVm 'modules/vm.bicep' = {
     subnetId: resourceId('Microsoft.Network/virtualNetworks/subnets', spokeVnetName, 'snet-spoke-default')
     adminPassword: adminPassword
     tags: tags
+    lbBackendPoolId: lbModule.outputs.lbBackendPoolId 
   }
 }
+
+// 7. Deploy the Load Balancer
+module lbModule 'modules/lb.bicep' = {
+  name: 'lbDeploy'
+  params: {
+    location: location
+    lbName: 'lb-app-prod-01'
+    tags: tags
+  }
+}
+
 
 
 
