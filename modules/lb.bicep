@@ -15,6 +15,7 @@ resource lbPublicIp 'Microsoft.Network/publicIPAddresses@2023-09-01' = {
 resource lb 'Microsoft.Network/loadBalancers@2023-09-01' = {
   name: lbName
   location: location
+  sku: { name: 'Standard' }
   tags: tags
   properties: {
     frontendIPConfigurations: [
