@@ -91,7 +91,7 @@ resource rcg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@2024-05-01
                 port: 80
               }
             ]
-            targetFqdns: windowsUpdateUrls
+            targetFqdns: windowsUpdateUrls != [] ? windowsUpdateUrls : ['*.microsoft.com']
             sourceAddresses: [
               '10.10.0.0/16'
             ]

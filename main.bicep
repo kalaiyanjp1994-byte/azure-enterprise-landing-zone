@@ -106,7 +106,7 @@ module hubVnet 'modules/vnet.bicep' = {
     subnets: [
       { name: 'snet-hub-default', prefix: hubSubnetPrefix }
       { name: 'AzureFirewallSubnet', prefix: firewallSubnetPrefix }
-      { name: 'AzureBastionSubnet', prefix: '10.0.3.0/26' }
+      { name: 'AzureBastionSubnet', prefix: '10.0.4.0/26' }
     ]
     tags: tags
   }
