@@ -20,7 +20,18 @@ param vmSize string = 'Standard_D2s_v7'
 @secure()
 param adminPassword string
 
-// 1. Deploy NSGs
+// 1. Deploy Log Analytics Workspace
+module logAnalytics 'modules/log-analytics.bicep' = {
+  name: 'logAnalyticsDeploy'
+  params: {
+    location: location
+    workspaceName: 'law-hub-prod'
+    tags: tags
+  }
+}
+
+// 2. Deploy NSGs
+
 module hubNsg 'modules/nsg.bicep' = {
   name: 'hubNsgDeploy'
   params: { 

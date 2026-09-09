@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "6297707635363430026"
+      "templateHash": "11043483741141964597"
     }
   },
   "parameters": {
@@ -52,6 +52,78 @@
     }
   },
   "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "logAnalyticsDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "workspaceName": {
+            "value": "law-hub-prod"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "5040276941250814269"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "workspaceName": {
+              "type": "string",
+              "defaultValue": "log-hub-prod"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2022-10-01",
+              "name": "[parameters('workspaceName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30
+              }
+            }
+          ],
+          "outputs": {
+            "workspaceId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName')), '2022-10-01').customerId]"
+            },
+            "workspaceResourceId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+            }
+          }
+        }
+      }
+    },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
@@ -681,6 +753,9 @@
           },
           "tags": {
             "value": "[variables('tags')]"
+          },
+          "lbBackendPoolId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'lbDeploy'), '2025-04-01').outputs.lbBackendPoolId.value]"
           }
         },
         "template": {
@@ -690,7 +765,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "15577503889155285713"
+              "templateHash": "1133119672160048526"
             }
           },
           "parameters": {
@@ -715,6 +790,10 @@
             },
             "tags": {
               "type": "object"
+            },
+            "lbBackendPoolId": {
+              "type": "string",
+              "defaultValue": ""
             }
           },
           "resources": [
@@ -732,7 +811,8 @@
                       "subnet": {
                         "id": "[parameters('subnetId')]"
                       },
-                      "privateIPAllocationMethod": "Dynamic"
+                      "privateIPAllocationMethod": "Dynamic",
+                      "loadBalancerBackendAddressPools": "[if(not(equals(parameters('lbBackendPoolId'), '')), createArray(createObject('id', parameters('lbBackendPoolId'))), createArray())]"
                     }
                   }
                 ]
@@ -780,6 +860,141 @@
               ]
             }
           ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'lbDeploy')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "lbDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "lbName": {
+            "value": "lb-app-prod-01"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "11188855619636867945"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string"
+            },
+            "lbName": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object"
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2023-09-01",
+              "name": "[format('{0}-pip', parameters('lbName'))]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "publicIPAllocationMethod": "Static"
+              },
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.Network/loadBalancers",
+              "apiVersion": "2023-09-01",
+              "name": "[parameters('lbName')]",
+              "location": "[parameters('location')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "frontendIPConfigurations": [
+                  {
+                    "name": "LoadBalancerFrontEnd",
+                    "properties": {
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-pip', parameters('lbName')))]"
+                      }
+                    }
+                  }
+                ],
+                "backendAddressPools": [
+                  {
+                    "name": "BackendPool1"
+                  }
+                ],
+                "probes": [
+                  {
+                    "name": "HttpHealthProbe",
+                    "properties": {
+                      "protocol": "Http",
+                      "port": 80,
+                      "requestPath": "/",
+                      "intervalInSeconds": 15,
+                      "numberOfProbes": 2
+                    }
+                  }
+                ],
+                "loadBalancingRules": [
+                  {
+                    "name": "LBRuleHttp",
+                    "properties": {
+                      "frontendIPConfiguration": {
+                        "id": "[resourceId('Microsoft.Network/loadBalancers/frontendIPConfigurations', parameters('lbName'), 'LoadBalancerFrontEnd')]"
+                      },
+                      "backendAddressPool": {
+                        "id": "[resourceId('Microsoft.Network/loadBalancers/backendAddressPools', parameters('lbName'), 'BackendPool1')]"
+                      },
+                      "probe": {
+                        "id": "[resourceId('Microsoft.Network/loadBalancers/probes', parameters('lbName'), 'HttpHealthProbe')]"
+                      },
+                      "protocol": "Tcp",
+                      "frontendPort": 80,
+                      "backendPort": 80,
+                      "idleTimeoutInMinutes": 4,
+                      "loadDistribution": "Default"
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', format('{0}-pip', parameters('lbName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "lbPublicIp": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', format('{0}-pip', parameters('lbName'))), '2023-09-01').ipAddress]"
+            },
+            "lbBackendPoolId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/loadBalancers', parameters('lbName')), '2023-09-01').backendAddressPools[0].id]"
+            }
+          }
         }
       }
     }
