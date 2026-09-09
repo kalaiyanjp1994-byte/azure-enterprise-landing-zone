@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.46.1.21595",
-      "templateHash": "11043483741141964597"
+      "templateHash": "12412409876590355090"
     }
   },
   "parameters": {
@@ -24,6 +24,10 @@
     "hubSubnetPrefix": {
       "type": "string",
       "defaultValue": "10.0.1.0/24"
+    },
+    "firewallSubnetPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.2.0/26"
     },
     "spokeVnetName": {
       "type": "string",
@@ -119,6 +123,84 @@
             "workspaceResourceId": {
               "type": "string",
               "value": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('workspaceName'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "keyVaultDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "keyVaultName": {
+            "value": "kv-hub-prod-01"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "17626615807650336401"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "keyVaultName": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2023-07-01",
+              "name": "[parameters('keyVaultName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "family": "A",
+                  "name": "standard"
+                },
+                "tenantId": "[subscription().tenantId]",
+                "accessPolicies": [],
+                "enabledForDeployment": true,
+                "enabledForDiskEncryption": true,
+                "enabledForTemplateDeployment": true,
+                "softDeleteRetentionInDays": 7,
+                "enablePurgeProtection": false
+              }
+            }
+          ],
+          "outputs": {
+            "keyVaultUri": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName')), '2023-07-01').vaultUri]"
+            },
+            "keyVaultId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
             }
           }
         }
@@ -355,8 +437,12 @@
                 "prefix": "[parameters('hubSubnetPrefix')]"
               },
               {
+                "name": "AzureFirewallSubnet",
+                "prefix": "[parameters('firewallSubnetPrefix')]"
+              },
+              {
                 "name": "AzureBastionSubnet",
-                "prefix": "10.0.2.0/26"
+                "prefix": "10.0.3.0/26"
               }
             ]
           },
@@ -729,7 +815,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2025-04-01",
-      "name": "spokeVmDeploy",
+      "name": "spokeVmssDeploy",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -739,8 +825,8 @@
           "location": {
             "value": "[parameters('location')]"
           },
-          "vmName": {
-            "value": "vm-app-prod-01"
+          "vmssName": {
+            "value": "vmss-app-prod-01"
           },
           "vmSize": {
             "value": "[parameters('vmSize')]"
@@ -765,105 +851,110 @@
             "_generator": {
               "name": "bicep",
               "version": "0.46.1.21595",
-              "templateHash": "1133119672160048526"
+              "templateHash": "9323164323312899268"
             }
           },
           "parameters": {
             "location": {
-              "type": "string"
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
             },
-            "vmName": {
+            "vmssName": {
               "type": "string"
             },
             "vmSize": {
-              "type": "string"
+              "type": "string",
+              "defaultValue": "Standard_D2s_v3"
             },
             "subnetId": {
+              "type": "string"
+            },
+            "lbBackendPoolId": {
               "type": "string"
             },
             "adminUsername": {
               "type": "string",
               "defaultValue": "azureuser"
             },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            },
             "adminPassword": {
               "type": "securestring"
-            },
-            "tags": {
-              "type": "object"
-            },
-            "lbBackendPoolId": {
-              "type": "string",
-              "defaultValue": ""
             }
           },
           "resources": [
             {
-              "type": "Microsoft.Network/networkInterfaces",
+              "type": "Microsoft.Compute/virtualMachineScaleSets",
               "apiVersion": "2023-09-01",
-              "name": "[format('{0}-nic', parameters('vmName'))]",
+              "name": "[parameters('vmssName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
-              "properties": {
-                "ipConfigurations": [
-                  {
-                    "name": "ipconfig1",
-                    "properties": {
-                      "subnet": {
-                        "id": "[parameters('subnetId')]"
-                      },
-                      "privateIPAllocationMethod": "Dynamic",
-                      "loadBalancerBackendAddressPools": "[if(not(equals(parameters('lbBackendPoolId'), '')), createArray(createObject('id', parameters('lbBackendPoolId'))), createArray())]"
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              "type": "Microsoft.Compute/virtualMachines",
-              "apiVersion": "2023-09-01",
-              "name": "[parameters('vmName')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "hardwareProfile": {
-                  "vmSize": "[parameters('vmSize')]"
-                },
-                "osProfile": {
-                  "computerName": "[parameters('vmName')]",
-                  "adminUsername": "[parameters('adminUsername')]",
-                  "adminPassword": "[parameters('adminPassword')]"
-                },
-                "storageProfile": {
-                  "imageReference": {
-                    "publisher": "Canonical",
-                    "offer": "0001-com-ubuntu-server-jammy",
-                    "sku": "22_04-lts-gen2",
-                    "version": "latest"
-                  },
-                  "osDisk": {
-                    "createOption": "FromImage",
-                    "managedDisk": {
-                      "storageAccountType": "Standard_LRS"
-                    }
-                  }
-                },
-                "networkProfile": {
-                  "networkInterfaces": [
-                    {
-                      "id": "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('vmName')))]"
-                    }
-                  ]
-                }
+              "sku": {
+                "name": "[parameters('vmSize')]",
+                "tier": "Standard",
+                "capacity": 2
               },
-              "dependsOn": [
-                "[resourceId('Microsoft.Network/networkInterfaces', format('{0}-nic', parameters('vmName')))]"
-              ]
+              "properties": {
+                "overprovision": true,
+                "upgradePolicy": {
+                  "mode": "Automatic"
+                },
+                "virtualMachineProfile": {
+                  "osProfile": {
+                    "computerNamePrefix": "vmss-app",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                  },
+                  "storageProfile": {
+                    "imageReference": {
+                      "publisher": "Canonical",
+                      "offer": "0001-com-ubuntu-server-jammy",
+                      "sku": "22_04-lts-gen2",
+                      "version": "latest"
+                    }
+                  },
+                  "networkProfile": {
+                    "networkInterfaceConfigurations": [
+                      {
+                        "name": "nic-vmss",
+                        "properties": {
+                          "primary": true,
+                          "ipConfigurations": [
+                            {
+                              "name": "ipconfig-vmss",
+                              "properties": {
+                                "subnet": {
+                                  "id": "[parameters('subnetId')]"
+                                },
+                                "loadBalancerBackendAddressPools": [
+                                  {
+                                    "id": "[parameters('lbBackendPoolId')]"
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
             }
-          ]
+          ],
+          "outputs": {
+            "vmssId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Compute/virtualMachineScaleSets', parameters('vmssName'))]"
+            }
+          }
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'lbDeploy')]"
+        "[resourceId('Microsoft.Resources/deployments', 'lbDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'spokeVnetModule')]"
       ]
     },
     {
@@ -997,6 +1088,1006 @@
           }
         }
       }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "firewallPolicyDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "policyName": {
+            "value": "fp-hub-prod"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "16893859020581941051"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "policyName": {
+              "type": "string",
+              "defaultValue": "fp-hub-prod"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/firewallPolicies",
+              "apiVersion": "2024-05-01",
+              "name": "[parameters('policyName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "tier": "Standard"
+                },
+                "threatIntelMode": "Deny"
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "deploy-rcg-dnat-platform",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "firewallPolicyName": {
+                    "value": "[parameters('policyName')]"
+                  },
+                  "ruleCollectionGroupName": {
+                    "value": "RCG-Platform-DNAT"
+                  },
+                  "priority": {
+                    "value": 100
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.46.1.21595",
+                      "templateHash": "10099447822407872269"
+                    }
+                  },
+                  "parameters": {
+                    "firewallPolicyName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent firewall policy"
+                      }
+                    },
+                    "ruleCollectionGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of this rule collection group"
+                      }
+                    },
+                    "priority": {
+                      "type": "int",
+                      "minValue": 100,
+                      "maxValue": 65000,
+                      "metadata": {
+                        "description": "Priority of the RCG within the policy (100-65000)"
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/firewallPolicies/ruleCollectionGroups",
+                      "apiVersion": "2024-05-01",
+                      "name": "[format('{0}/{1}', parameters('firewallPolicyName'), parameters('ruleCollectionGroupName'))]",
+                      "properties": {
+                        "priority": "[parameters('priority')]",
+                        "ruleCollections": [
+                          {
+                            "ruleCollectionType": "FirewallPolicyNatRuleCollection",
+                            "name": "RC-DNAT-SharedServices",
+                            "priority": 100,
+                            "action": {
+                              "type": "Dnat"
+                            },
+                            "rules": [
+                              {
+                                "ruleType": "NatRule",
+                                "name": "DNAT-RDPJumpbox",
+                                "description": "Inbound RDP to jumpbox via FW public IP",
+                                "translatedAddress": "10.10.0.4",
+                                "translatedPort": "3389",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "203.0.113.0/24",
+                                  "198.51.100.42/32"
+                                ],
+                                "destinationAddresses": [
+                                  "<firewallPublicIp>"
+                                ],
+                                "destinationPorts": [
+                                  "3389"
+                                ]
+                              },
+                              {
+                                "ruleType": "NatRule",
+                                "name": "DNAT-HTTPS-AppGw",
+                                "description": "Inbound 443 to application gateway",
+                                "translatedAddress": "10.10.0.20",
+                                "translatedPort": "443",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "*"
+                                ],
+                                "destinationAddresses": [
+                                  "<firewallPublicIp>"
+                                ],
+                                "destinationPorts": [
+                                  "443"
+                                ]
+                              },
+                              {
+                                "ruleType": "NatRule",
+                                "name": "DNAT-SSH-Bastion",
+                                "description": "Inbound SSH to jumpbox via bastion host",
+                                "translatedAddress": "10.10.0.5",
+                                "translatedPort": "22",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "203.0.113.0/24"
+                                ],
+                                "destinationAddresses": [
+                                  "<firewallPublicIp>"
+                                ],
+                                "destinationPorts": [
+                                  "22"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('ruleCollectionGroupName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/firewallPolicies/ruleCollectionGroups', parameters('firewallPolicyName'), parameters('ruleCollectionGroupName'))]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "deploy-rcg-network-platform",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "firewallPolicyName": {
+                    "value": "[parameters('policyName')]"
+                  },
+                  "ruleCollectionGroupName": {
+                    "value": "RCG-Platform-Network"
+                  },
+                  "priority": {
+                    "value": 200
+                  },
+                  "appGwInfraRanges": {
+                    "value": [
+                      "10.0.100.0/24"
+                    ]
+                  },
+                  "spokes": {
+                    "value": {
+                      "hub": "10.0.0.0/16",
+                      "app": "10.1.0.0/16"
+                    }
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.46.1.21595",
+                      "templateHash": "5609940665576562854"
+                    }
+                  },
+                  "parameters": {
+                    "firewallPolicyName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent firewall policy"
+                      }
+                    },
+                    "ruleCollectionGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of this rule collection group"
+                      }
+                    },
+                    "priority": {
+                      "type": "int",
+                      "minValue": 100,
+                      "maxValue": 65000,
+                      "metadata": {
+                        "description": "Priority of the RCG (100-65000)"
+                      }
+                    },
+                    "spokes": {
+                      "type": "object",
+                      "metadata": {
+                        "description": "Internal CIDR ranges for spoke VNETs"
+                      }
+                    },
+                    "appGwInfraRanges": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "AppGateway infrastructure subnet range"
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/firewallPolicies/ruleCollectionGroups",
+                      "apiVersion": "2024-05-01",
+                      "name": "[format('{0}/{1}', parameters('firewallPolicyName'), parameters('ruleCollectionGroupName'))]",
+                      "properties": {
+                        "priority": "[parameters('priority')]",
+                        "ruleCollections": [
+                          {
+                            "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                            "name": "RC-SpokeToSpoke",
+                            "priority": 100,
+                            "action": {
+                              "type": "Allow"
+                            },
+                            "rules": [
+                              {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowSpokeToSpoke-HTTPS",
+                                "description": "Allow HTTPS between landing-zone spokes",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "[parameters('spokes').hub]",
+                                  "[parameters('spokes').app]",
+                                  "[parameters('spokes').data]",
+                                  "[parameters('spokes').shared]"
+                                ],
+                                "destinationAddresses": [
+                                  "[parameters('spokes').app]",
+                                  "[parameters('spokes').data]",
+                                  "[parameters('spokes').shared]"
+                                ],
+                                "destinationPorts": [
+                                  "443"
+                                ]
+                              },
+                              {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowSpokeToSpoke-RDP",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "[parameters('spokes').shared]"
+                                ],
+                                "destinationAddresses": [
+                                  "[parameters('spokes').app]",
+                                  "[parameters('spokes').data]"
+                                ],
+                                "destinationPorts": [
+                                  "3389"
+                                ]
+                              },
+                              {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowSpokeToSpoke-SQL",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "[parameters('spokes').app]"
+                                ],
+                                "destinationAddresses": [
+                                  "[parameters('spokes').data]"
+                                ],
+                                "destinationPorts": [
+                                  "1433",
+                                  "11000-11999"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                            "name": "RC-SpokeToAzurePlatform",
+                            "priority": 200,
+                            "action": {
+                              "type": "Allow"
+                            },
+                            "rules": [
+                              {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowAzureDNS",
+                                "ipProtocols": [
+                                  "UDP",
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "[parameters('spokes').hub]",
+                                  "[parameters('spokes').app]",
+                                  "[parameters('spokes').data]",
+                                  "[parameters('spokes').shared]"
+                                ],
+                                "destinationAddresses": [
+                                  "168.63.129.16",
+                                  "AzureDNS"
+                                ],
+                                "destinationPorts": [
+                                  "53"
+                                ]
+                              },
+                              {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowAzureKMS",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "[parameters('spokes').hub]",
+                                  "[parameters('spokes').app]",
+                                  "[parameters('spokes').data]",
+                                  "[parameters('spokes').shared]"
+                                ],
+                                "destinationAddresses": [
+                                  "23.102.135.246",
+                                  "40.90.220.85",
+                                  "23.102.135.245",
+                                  "AzureKeyVault"
+                                ],
+                                "destinationPorts": [
+                                  "1688"
+                                ]
+                              },
+                              {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowAzureAD-TLS",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "[parameters('spokes').hub]",
+                                  "[parameters('spokes').app]",
+                                  "[parameters('spokes').data]",
+                                  "[parameters('spokes').shared]"
+                                ],
+                                "destinationAddresses": [
+                                  "AzureActiveDirectory"
+                                ],
+                                "destinationPorts": [
+                                  "443"
+                                ]
+                              },
+                              {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowAzureMonitor",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": [
+                                  "[parameters('spokes').hub]",
+                                  "[parameters('spokes').app]",
+                                  "[parameters('spokes').data]",
+                                  "[parameters('spokes').shared]"
+                                ],
+                                "destinationAddresses": [
+                                  "AzureMonitor"
+                                ],
+                                "destinationPorts": [
+                                  "443"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                            "name": "RC-AppGatewayInfrastructure",
+                            "priority": 300,
+                            "action": {
+                              "type": "Allow"
+                            },
+                            "rules": [
+                              {
+                                "ruleType": "NetworkRule",
+                                "name": "AllowAppGwInfrastructure",
+                                "ipProtocols": [
+                                  "TCP"
+                                ],
+                                "sourceAddresses": "[parameters('appGwInfraRanges')]",
+                                "destinationAddresses": [
+                                  "GatewayManager"
+                                ],
+                                "destinationPorts": [
+                                  "443"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('ruleCollectionGroupName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/firewallPolicies/ruleCollectionGroups', parameters('firewallPolicyName'), parameters('ruleCollectionGroupName'))]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "deploy-rcg-app-egress",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "firewallPolicyName": {
+                    "value": "[parameters('policyName')]"
+                  },
+                  "ruleCollectionGroupName": {
+                    "value": "RCG-Application-Egress"
+                  },
+                  "priority": {
+                    "value": 300
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.46.1.21595",
+                      "templateHash": "14828527264454046654"
+                    }
+                  },
+                  "parameters": {
+                    "firewallPolicyName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent firewall policy"
+                      }
+                    },
+                    "ruleCollectionGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of this rule collection group"
+                      }
+                    },
+                    "priority": {
+                      "type": "int",
+                      "minValue": 100,
+                      "maxValue": 65000,
+                      "metadata": {
+                        "description": "Priority of the RCG (100-65000)"
+                      }
+                    },
+                    "loggingUrls": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "FQDNs that match Azure logging / monitoring endpoints"
+                      }
+                    },
+                    "windowsUpdateUrls": {
+                      "type": "array",
+                      "defaultValue": [],
+                      "metadata": {
+                        "description": "FQDNs for Windows Update endpoints"
+                      }
+                    },
+                    "businessHours": {
+                      "type": "object",
+                      "defaultValue": {
+                        "startTime": "08:00",
+                        "endTime": "18:00",
+                        "days": [
+                          "Monday",
+                          "Tuesday",
+                          "Wednesday",
+                          "Thursday",
+                          "Friday"
+                        ]
+                      },
+                      "metadata": {
+                        "description": "Business-hours time window object"
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/firewallPolicies/ruleCollectionGroups",
+                      "apiVersion": "2024-05-01",
+                      "name": "[format('{0}/{1}', parameters('firewallPolicyName'), parameters('ruleCollectionGroupName'))]",
+                      "properties": {
+                        "priority": "[parameters('priority')]",
+                        "ruleCollections": [
+                          {
+                            "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                            "name": "RC-Egress-AzureDiagnostics",
+                            "priority": 100,
+                            "action": {
+                              "type": "Allow"
+                            },
+                            "rules": [
+                              {
+                                "ruleType": "ApplicationRule",
+                                "name": "AllowAzureMonitor-BusinessHours",
+                                "description": "[format('Allow diagnostic traffic to AzureMonitor only during {0}-{1} on {2}', parameters('businessHours').startTime, parameters('businessHours').endTime, join(parameters('businessHours').days, ', '))]",
+                                "protocols": [
+                                  {
+                                    "protocolType": "Https",
+                                    "port": 443
+                                  }
+                                ],
+                                "fqdnTags": [
+                                  "AzureDiagnostics"
+                                ],
+                                "sourceAddresses": [
+                                  "10.10.0.0/16",
+                                  "10.20.0.0/16"
+                                ],
+                                "targetFqdns": "[parameters('loggingUrls')]",
+                                "webCategories": []
+                              }
+                            ]
+                          },
+                          {
+                            "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                            "name": "RC-Egress-WindowsUpdate",
+                            "priority": 200,
+                            "action": {
+                              "type": "Allow"
+                            },
+                            "rules": [
+                              {
+                                "ruleType": "ApplicationRule",
+                                "name": "AllowWindowsUpdate",
+                                "protocols": [
+                                  {
+                                    "protocolType": "Https",
+                                    "port": 443
+                                  },
+                                  {
+                                    "protocolType": "Http",
+                                    "port": 80
+                                  }
+                                ],
+                                "targetFqdns": "[parameters('windowsUpdateUrls')]",
+                                "sourceAddresses": [
+                                  "10.10.0.0/16"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                            "name": "RC-Egress-AzureManagement",
+                            "priority": 300,
+                            "action": {
+                              "type": "Allow"
+                            },
+                            "rules": [
+                              {
+                                "ruleType": "ApplicationRule",
+                                "name": "AllowAzurePortal",
+                                "protocols": [
+                                  {
+                                    "protocolType": "Https",
+                                    "port": 443
+                                  }
+                                ],
+                                "fqdnTags": [
+                                  "AzurePortal"
+                                ],
+                                "sourceAddresses": [
+                                  "10.30.0.0/16"
+                                ]
+                              },
+                              {
+                                "ruleType": "ApplicationRule",
+                                "name": "AllowAzureAPIManagement",
+                                "protocols": [
+                                  {
+                                    "protocolType": "Https",
+                                    "port": 443
+                                  }
+                                ],
+                                "fqdnTags": [
+                                  "APIManagement"
+                                ],
+                                "sourceAddresses": [
+                                  "10.10.0.0/16"
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                            "name": "RC-Egress-GitHub-Timed",
+                            "priority": 400,
+                            "action": {
+                              "type": "Allow"
+                            },
+                            "rules": [
+                              {
+                                "ruleType": "ApplicationRule",
+                                "name": "AllowGitHub-BusinessHours",
+                                "protocols": [
+                                  {
+                                    "protocolType": "Https",
+                                    "port": 443
+                                  }
+                                ],
+                                "targetFqdns": [
+                                  "github.com",
+                                  "*.github.com",
+                                  "githubusercontent.com",
+                                  "*.githubusercontent.com",
+                                  "pkg.github.com"
+                                ],
+                                "sourceAddresses": [
+                                  "10.10.0.128/25"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('ruleCollectionGroupName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/firewallPolicies/ruleCollectionGroups', parameters('firewallPolicyName'), parameters('ruleCollectionGroupName'))]"
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2025-04-01",
+              "name": "deploy-rcg-app-shared",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "firewallPolicyName": {
+                    "value": "[parameters('policyName')]"
+                  },
+                  "ruleCollectionGroupName": {
+                    "value": "RCG-Application-Shared"
+                  },
+                  "priority": {
+                    "value": 400
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.46.1.21595",
+                      "templateHash": "10636248138720390960"
+                    }
+                  },
+                  "parameters": {
+                    "firewallPolicyName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the parent firewall policy"
+                      }
+                    },
+                    "ruleCollectionGroupName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of this rule collection group"
+                      }
+                    },
+                    "priority": {
+                      "type": "int",
+                      "minValue": 100,
+                      "maxValue": 65000,
+                      "metadata": {
+                        "description": "Priority of the RCG (100-65000)"
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/firewallPolicies/ruleCollectionGroups",
+                      "apiVersion": "2024-05-01",
+                      "name": "[format('{0}/{1}', parameters('firewallPolicyName'), parameters('ruleCollectionGroupName'))]",
+                      "properties": {
+                        "priority": "[parameters('priority')]",
+                        "ruleCollections": [
+                          {
+                            "ruleCollectionType": "FirewallPolicyFilterRuleCollection",
+                            "name": "RC-SharedServices-Outbound",
+                            "priority": 100,
+                            "action": {
+                              "type": "Allow"
+                            },
+                            "rules": [
+                              {
+                                "ruleType": "ApplicationRule",
+                                "name": "AllowKeyVault",
+                                "description": "Workloads fetching secrets from any KV within the tenant",
+                                "protocols": [
+                                  {
+                                    "protocolType": "Https",
+                                    "port": 443
+                                  }
+                                ],
+                                "targetFqdns": [
+                                  "[format('*.{0}', environment().suffixes.keyvaultDns)]"
+                                ],
+                                "sourceAddresses": [
+                                  "10.10.0.0/16",
+                                  "10.20.0.0/16"
+                                ]
+                              },
+                              {
+                                "ruleType": "ApplicationRule",
+                                "name": "AllowContainerRegistry",
+                                "protocols": [
+                                  {
+                                    "protocolType": "Https",
+                                    "port": 443
+                                  }
+                                ],
+                                "targetFqdns": [
+                                  "*.azurecr.io",
+                                  "[format('*.blob.{0}', environment().suffixes.storage)]"
+                                ],
+                                "sourceAddresses": [
+                                  "10.10.0.0/16"
+                                ]
+                              },
+                              {
+                                "ruleType": "ApplicationRule",
+                                "name": "AllowAzureFiles",
+                                "protocols": [
+                                  {
+                                    "protocolType": "Https",
+                                    "port": 443
+                                  }
+                                ],
+                                "targetFqdns": [
+                                  "[format('*.file.{0}', environment().suffixes.storage)]"
+                                ],
+                                "sourceAddresses": [
+                                  "10.10.0.0/16",
+                                  "10.20.0.0/16"
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('ruleCollectionGroupName')]"
+                    },
+                    "resourceId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/firewallPolicies/ruleCollectionGroups', parameters('firewallPolicyName'), parameters('ruleCollectionGroupName'))]"
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "outputs": {
+            "policyId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/firewallPolicies', parameters('policyName'))]"
+            },
+            "policyName": {
+              "type": "string",
+              "value": "[parameters('policyName')]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2025-04-01",
+      "name": "firewallDeploy",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "location": {
+            "value": "[parameters('location')]"
+          },
+          "firewallName": {
+            "value": "afw-hub-prod"
+          },
+          "firewallPolicyId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'firewallPolicyDeploy'), '2025-04-01').outputs.policyId.value]"
+          },
+          "subnetId": {
+            "value": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('hubVnetName'), 'AzureFirewallSubnet')]"
+          },
+          "tags": {
+            "value": "[variables('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.46.1.21595",
+              "templateHash": "18139622282973193916"
+            }
+          },
+          "parameters": {
+            "location": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]"
+            },
+            "firewallName": {
+              "type": "string",
+              "defaultValue": "afw-hub-prod"
+            },
+            "publicIpName": {
+              "type": "string",
+              "defaultValue": "pip-afw-hub-prod"
+            },
+            "firewallPolicyId": {
+              "type": "string"
+            },
+            "subnetId": {
+              "type": "string"
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Network/publicIPAddresses",
+              "apiVersion": "2023-09-01",
+              "name": "[parameters('publicIpName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "publicIPAllocationMethod": "Static"
+              }
+            },
+            {
+              "type": "Microsoft.Network/azureFirewalls",
+              "apiVersion": "2023-09-01",
+              "name": "[parameters('firewallName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "sku": {
+                  "name": "AZFW_VNet",
+                  "tier": "Standard"
+                },
+                "firewallPolicy": {
+                  "id": "[parameters('firewallPolicyId')]"
+                },
+                "ipConfigurations": [
+                  {
+                    "name": "azurefirewall0",
+                    "properties": {
+                      "publicIPAddress": {
+                        "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
+                      },
+                      "subnet": {
+                        "id": "[parameters('subnetId')]"
+                      }
+                    }
+                  }
+                ]
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "firewallId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Network/azureFirewalls', parameters('firewallName'))]"
+            },
+            "firewallPublicIp": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', parameters('publicIpName')), '2023-09-01').ipAddress]"
+            }
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'firewallPolicyDeploy')]",
+        "[resourceId('Microsoft.Resources/deployments', 'hubVnetModule')]"
+      ]
     }
   ]
 }

@@ -9,9 +9,6 @@ param ruleCollectionGroupName string
 @maxValue(65000)
 param priority int
 
-@description('Tags')
-param tags object = {}
-
 resource rcg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@2024-05-01' = {
   parent: existingPolicy
   name: ruleCollectionGroupName
@@ -38,8 +35,7 @@ resource rcg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@2024-05-01
               }
             ]
             targetFqdns: [
-              '*.vault.azure.net'
-              '*.vault.usgovcloudapi.net'
+              '*.${environment().suffixes.keyvaultDns}'
             ]
             sourceAddresses: [
               '10.10.0.0/16'
@@ -57,7 +53,7 @@ resource rcg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@2024-05-01
             ]
             targetFqdns: [
               '*.azurecr.io'
-              '*.blob.core.windows.net'
+              '*.blob.${environment().suffixes.storage}'
             ]
             sourceAddresses: [
               '10.10.0.0/16'
@@ -73,8 +69,7 @@ resource rcg 'Microsoft.Network/firewallPolicies/ruleCollectionGroups@2024-05-01
               }
             ]
             targetFqdns: [
-              '*.file.core.windows.net'
-              '*.file.core.usgovcloudapi.net'
+              '*.file.${environment().suffixes.storage}'
             ]
             sourceAddresses: [
               '10.10.0.0/16'

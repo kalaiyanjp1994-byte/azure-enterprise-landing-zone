@@ -155,6 +155,9 @@ module bastion 'bastion.bicep' = {
 // 6. Deploy VM Scale Set
 module spokeVmss 'modules/vmss.bicep' = {
   name: 'spokeVmssDeploy'
+  dependsOn: [
+    spokeVnet
+  ]
   params: {
     location: location
     vmssName: 'vmss-app-prod-01'

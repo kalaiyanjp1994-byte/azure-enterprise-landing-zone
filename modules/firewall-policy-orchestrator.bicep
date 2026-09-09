@@ -21,7 +21,6 @@ module platformRcg '../firewall-policy/modules/rcg-dnat-platform.bicep' = {
     firewallPolicyName: policyName
     ruleCollectionGroupName: 'RCG-Platform-DNAT'
     priority: 100
-    tags: tags
   }
 }
 
@@ -36,7 +35,6 @@ module platformNetworkRcg '../firewall-policy/modules/rcg-network-platform.bicep
       hub: '10.0.0.0/16'
       app: '10.1.0.0/16' // Matched to your main.bicep spoke prefix
     }
-    tags: tags
   }
 }
 
@@ -55,7 +53,6 @@ module appSharedRcg '../firewall-policy/modules/rcg-app-shared.bicep' = {
     firewallPolicyName: policyName
     ruleCollectionGroupName: 'RCG-Application-Shared'
     priority: 400
-    tags: tags
   }
 }
 

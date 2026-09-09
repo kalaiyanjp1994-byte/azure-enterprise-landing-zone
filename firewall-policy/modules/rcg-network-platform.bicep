@@ -15,9 +15,6 @@ param spokes object
 @description('AppGateway infrastructure subnet range')
 param appGwInfraRanges array = []
 
-@description('Tags')
-param tags object = {}
-
 //------------------------------------------------------------------------------
 // Network rule collections: well-known service traffic
 //------------------------------------------------------------------------------

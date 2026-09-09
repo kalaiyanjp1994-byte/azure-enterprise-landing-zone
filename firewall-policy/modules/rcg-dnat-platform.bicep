@@ -9,9 +9,6 @@ param ruleCollectionGroupName string
 @maxValue(65000)
 param priority int
 
-@description('Tags to apply')
-param tags object = {}
-
 //------------------------------------------------------------------------------
 // Rule Collection: DNAT — inbound shared services
 //------------------------------------------------------------------------------
