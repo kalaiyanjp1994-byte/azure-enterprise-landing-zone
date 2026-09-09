@@ -3,9 +3,11 @@ param vmssName string
 param vmSize string = 'Standard_D2s_v3'
 param subnetId string
 param lbBackendPoolId string
+param adminUsername string = 'azureuser'
+param tags object = {}
 @secure()
 param adminPassword string
-param tags object = {}
+
 
 resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2023-09-01' = {
   name: vmssName
@@ -24,7 +26,7 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2023-09-01' = {
     virtualMachineProfile: {
       osProfile: {
         computerNamePrefix: 'vmss-app'
-        adminUsername: 'azureuser'
+        adminUsername: adminUsername
         adminPassword: adminPassword
       }
       storageProfile: {

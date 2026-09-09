@@ -11,6 +11,8 @@ var tags = {
 param hubVnetName string = 'Hub-Vnet-prod'
 param hubAddressPrefix string = '10.0.0.0/16'
 param hubSubnetPrefix string = '10.0.1.0/24'
+param firewallSubnetPrefix string = '10.0.2.0/26' // Explicitly defined for clarity
+
 
 // Spoke VNet configuration
 param spokeVnetName string = 'Spoke-Vnet-prod'
@@ -103,7 +105,8 @@ module hubVnet 'modules/vnet.bicep' = {
     nsgId: hubNsg.outputs.nsgId
     subnets: [
       { name: 'snet-hub-default', prefix: hubSubnetPrefix }
-      { name: 'AzureBastionSubnet', prefix: '10.0.2.0/26' }
+      { name: 'AzureFirewallSubnet', prefix: firewallSubnetPrefix }
+      { name: 'AzureBastionSubnet', prefix: '10.0.3.0/26' }
     ]
     tags: tags
   }
@@ -173,6 +176,32 @@ module lbModule 'modules/lb.bicep' = {
     tags: tags
   }
 }
+
+// 8. Deploy Firewall Policy and Firewall
+module firewallPolicy 'modules/firewall-policy-orchestrator.bicep' = {
+  name: 'firewallPolicyDeploy'
+  params: {
+    location: location
+    policyName: 'fp-hub-prod'
+    tags: tags
+  }
+}
+
+module firewall 'modules/firewall.bicep' = {
+  name: 'firewallDeploy'
+  dependsOn: [
+    hubVnet
+  ]
+  params: {
+    location: location
+    firewallName: 'afw-hub-prod'
+    firewallPolicyId: firewallPolicy.outputs.policyId
+    subnetId: resourceId('Microsoft.Network/virtualNetworks/subnets', hubVnetName, 'AzureFirewallSubnet')
+    tags: tags
+  }
+}
+
+
 
 
 

@@ -17,7 +17,7 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enabledForDiskEncryption: true
     enabledForTemplateDeployment: true
     softDeleteRetentionInDays: 7
-    purgeProtectionEnabled: false
+    enablePurgeProtection: false
   }
 }
 
