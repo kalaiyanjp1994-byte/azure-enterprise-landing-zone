@@ -30,7 +30,17 @@ module logAnalytics 'modules/log-analytics.bicep' = {
   }
 }
 
-// 2. Deploy NSGs
+// 2. Deploy Key Vault
+module keyVault 'modules/keyvault.bicep' = {
+  name: 'keyVaultDeploy'
+  params: {
+    location: location
+    keyVaultName: 'kv-hub-prod-01'
+    tags: tags
+  }
+}
+
+// 3. Deploy NSGs
 
 module hubNsg 'modules/nsg.bicep' = {
   name: 'hubNsgDeploy'
@@ -139,12 +149,12 @@ module bastion 'bastion.bicep' = {
   }
 }
 
-// 6. Deploy VM
-module spokeVm 'modules/vm.bicep' = {
-  name: 'spokeVmDeploy'
+// 6. Deploy VM Scale Set
+module spokeVmss 'modules/vmss.bicep' = {
+  name: 'spokeVmssDeploy'
   params: {
     location: location
-    vmName: 'vm-app-prod-01'
+    vmssName: 'vmss-app-prod-01'
     vmSize: vmSize
     subnetId: resourceId('Microsoft.Network/virtualNetworks/subnets', spokeVnetName, 'snet-spoke-default')
     adminPassword: adminPassword
@@ -152,6 +162,7 @@ module spokeVm 'modules/vm.bicep' = {
     lbBackendPoolId: lbModule.outputs.lbBackendPoolId 
   }
 }
+
 
 // 7. Deploy the Load Balancer
 module lbModule 'modules/lb.bicep' = {
