@@ -17,7 +17,7 @@ resource vmss 'Microsoft.Compute/virtualMachineScaleSets@2023-09-01' = {
   sku: {
     name: vmSize
     tier: 'Standard'
-    capacity: 2 // Default to 2 instances for high availability
+    capacity: 1 // Reduced to 1 instance to avoid Free Tier quota limits
   }
   properties: {
     overprovision: true
