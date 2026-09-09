@@ -1,6 +1,7 @@
 param location string = resourceGroup().location
 param vmssName string
-param vmSize string = 'Standard_D2s_v3'
+param vmSize string = 'Standard_B2s'
+
 param subnetId string
 param lbBackendPoolId string
 param adminUsername string = 'azureuser'
